@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pastel Wallet</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Changed font to Inter for a cleaner, more professional look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Applied the new professional font */
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        
+        /* Custom Slider Styling - High End */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+            width: 100%;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%; background: white;
+            border: 3px solid var(--thumb-color, #ffb3c6);
+            cursor: pointer; margin-top: -6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            border-radius: 2px; background: var(--track-bg, rgba(255, 255, 255, 0.4));
+        }
+        
+        /* Glassmorphism utilities - Refined Premium Look */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.2s ease;
+            color: #334155;
+        }
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(244, 114, 182, 0.5);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.15);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            color: #475569;
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-rose-50 via-pink-50 to-fuchsia-50 min-h-screen text-slate-800 pb-20 selection:bg-pink-200 selection:text-pink-900">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- SVG Icons ---
+        const CalendarIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+        const RefreshIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
+        const XIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
+        const TrashIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
+        const DocumentIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+        const CheckIcon = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
+
+        // --- Donut Chart Component ---
+        const DonutChart = ({ categories, salary }) => {
+            const [hovered, setHovered] = useState(null);
+            let currentOffset = 100;
+            
+            return (
+                <div className="relative w-full aspect-square max-w-[260px] mx-auto mt-4 mb-2">
+                    <svg viewBox="0 0 42 42" className="w-full h-full transform -rotate-90 drop-shadow-sm">
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#e2e8f0" strokeWidth="6" opacity="0.6" />
+                        {categories.map((cat) => {
+                            const loggedSum = cat.expenses.reduce((s, e) => s + Number(e.amount), 0);
+                            if (loggedSum === 0) return null;
+                            const percent = (loggedSum / salary) * 100;
+                            const dashArray = `${percent} ${100 - percent}`;
+                            const offset = currentOffset;
+                            currentOffset -= percent;
+                            
+                            return (
+                                <circle 
+                                    key={cat.id} cx="21" cy="21" r="15.915" 
+                                    fill="transparent" stroke={cat.color} 
+                                    strokeWidth={hovered === cat.id ? "8" : "6"} 
+                                    strokeDasharray={dashArray} strokeDashoffset={offset} 
+                                    className="transition-all duration-300 cursor-pointer"
+                                    onMouseEnter={() => setHovered(cat.id)}
+                                    onMouseLeave={() => setHovered(null)}
+                                    onClick={() => setHovered(cat.id)}
+                                />
+                            );
+                        })}
+                    </svg>
+                    
+                    {/* Floating Tooltip */}
+                    {hovered && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 glass-card p-3.5 rounded-2xl text-xs w-48 shadow-[0_10px_40px_rgba(0,0,0,0.1)] z-10 pointer-events-none text-slate-800 border border-white">
+                            {categories.filter(c => c.id === hovered).map(cat => {
+                                const loggedSum = cat.expenses.reduce((s, e) => s + Number(e.amount), 0);
+                                const percent = ((loggedSum / salary) * 100).toFixed(1);
+                                return (
+                                    <div key={cat.id}>
+                                        <div className="font-semibold mb-2 text-sm tracking-tight">{cat.name}</div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{backgroundColor: cat.color}}></div>
+                                            <span className="text-slate-600 font-medium">Rs. {loggedSum.toLocaleString()} <span className="text-slate-400">({percent}%)</span></span>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+            )
+        };
+
+        // --- Main Application ---
+        function App() {
+            const [salary, setSalary] = useState(55000);
+            const [categories, setCategories] = useState([]);
+            
+            const [expandedCat, setExpandedCat] = useState(null);
+            const [newCatName, setNewCatName] = useState('');
+
+            // --- Local Storage Loading ---
+            useEffect(() => {
+                const localData = localStorage.getItem('pastelWalletDataV2');
+                
+                if (localData) {
+                    const parsed = JSON.parse(localData);
+                    setSalary(parsed.salary || 55000);
+                    setCategories(parsed.categories || []);
+                } else {
+                    // Default Categories
+                    setCategories([
+                        { id: 'c1', name: 'Mess & Groceries', allocated: 25000, color: '#00bfa5', expenses: [] },
+                        { id: 'c2', name: 'Utilities (Elec/Gas/Net)', allocated: 5000, color: '#2962ff', expenses: [] },
+                        { id: 'c3', name: 'Bike Fuel & Transport', allocated: 6000, color: '#aa00ff', expenses: [] },
+                        { id: 'c4', name: 'Mobile Package & Data', allocated: 1500, color: '#ff9100', expenses: [] },
+                        { id: 'c5', name: 'Chai, Snacks & Outings', allocated: 5000, color: '#f50057', expenses: [] },
+                        { id: 'c6', name: 'Personal Care & Misc', allocated: 2000, color: '#00c853', expenses: [] }
+                    ]);
+                }
+            }, []);
+
+            // Data Mutation
+            const saveState = async (newSalary, newCats) => {
+                localStorage.setItem('pastelWalletDataV2', JSON.stringify({ salary: newSalary, categories: newCats }));
+            };
+
+            const adjustSalary = (amount) => {
+                const newSal = Math.max(0, salary + amount);
+                setSalary(newSal);
+                saveState(newSal, categories);
+            };
+
+            const updateCategory = (id, field, value) => {
+                const newCats = categories.map(c => c.id === id ? { ...c, [field]: value } : c);
+                setCategories(newCats);
+                saveState(salary, newCats);
+            };
+
+            const deleteCategory = (id) => {
+                const newCats = categories.filter(c => c.id !== id);
+                setCategories(newCats);
+                saveState(salary, newCats);
+            };
+
+            const addExpense = (catId, expenseObj) => {
+                const newCats = categories.map(c => {
+                    if (c.id === catId) {
+                        return { ...c, expenses: [{ id: crypto.randomUUID(), ...expenseObj }, ...c.expenses] };
+                    }
+                    return c;
+                });
+                setCategories(newCats);
+                saveState(salary, newCats);
+            };
+
+            const updateExpense = (catId, expId, field, value) => {
+                const newCats = categories.map(c => {
+                    if (c.id === catId) {
+                        return { ...c, expenses: c.expenses.map(e => e.id === expId ? { ...e, [field]: value } : e) };
+                    }
+                    return c;
+                });
+                setCategories(newCats);
+                saveState(salary, newCats);
+            };
+
+            const deleteExpense = (catId, expId) => {
+                const newCats = categories.map(c => {
+                    if (c.id === catId) {
+                        return { ...c, expenses: c.expenses.filter(e => e.id !== expId) };
+                    }
+                    return c;
+                });
+                setCategories(newCats);
+                saveState(salary, newCats);
+            };
+
+            const handleAddCategory = () => {
+                if (!newCatName.trim()) return;
+                const colors = ['#f472b6', '#a78bfa', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#2dd4bf'];
+                const newCats = [...categories, {
+                    id: crypto.randomUUID(),
+                    name: newCatName.trim(),
+                    allocated: 0,
+                    color: colors[categories.length % colors.length],
+                    expenses: []
+                }];
+                setCategories(newCats);
+                setNewCatName('');
+                saveState(salary, newCats);
+            };
+
+            const totalAllocated = useMemo(() => categories.reduce((sum, cat) => sum + Number(cat.allocated || 0), 0), [categories]);
+            const totalEntriesCount = useMemo(() => categories.reduce((sum, cat) => sum + cat.expenses.length, 0), [categories]);
+            const remaining = salary - totalAllocated;
+            const utilization = salary > 0 ? ((totalAllocated / salary) * 100) : 0;
+
+            return (
+                <div className="max-w-xl mx-auto p-4 sm:p-8 space-y-6">
+                    
+                    {/* Header Row - Minimalist */}
+                    <div className="flex justify-between items-center pt-2 px-1">
+                        <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Finance Overview</h1>
+                        <div className="flex gap-2.5">
+                            <button className="glass-button p-2.5 rounded-2xl hover:text-pink-500">
+                                <DocumentIcon className="w-5 h-5" />
+                            </button>
+                            <button className="glass-button p-2.5 rounded-2xl hover:text-pink-500">
+                                <RefreshIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Top Income & Metrics Card */}
+                    <div className="glass-card rounded-3xl p-7 relative overflow-hidden">
+                        {/* Subtle background glow */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-pink-300/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                        
+                        <div className="flex justify-between items-center mb-3 relative z-10">
+                            <h3 className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase">
+                                Monthly Salary
+                            </h3>
+                            <div className="flex gap-2">
+                                <button onClick={() => adjustSalary(-5000)} className="bg-white/50 hover:bg-white/80 text-slate-600 border border-white/60 text-xs font-medium px-3 py-1.5 rounded-xl transition-colors shadow-sm">-5k</button>
+                                <button onClick={() => adjustSalary(5000)} className="bg-white/50 hover:bg-white/80 text-slate-600 border border-white/60 text-xs font-medium px-3 py-1.5 rounded-xl transition-colors shadow-sm">+5k</button>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-end gap-2 mb-8 relative z-10">
+                            <span className="text-2xl font-medium text-slate-400 mb-0.5">Rs.</span>
+                            <input 
+                                type="number" 
+                                value={salary} 
+                                onChange={(e) => {setSalary(Number(e.target.value)); saveState(Number(e.target.value), categories)}}
+                                className="text-4xl font-semibold text-slate-800 w-full outline-none bg-transparent tracking-tight"
+                            />
+                        </div>
+
+                        <div className="flex justify-between border-t border-slate-200/50 pt-5 mb-5 relative z-10">
+                            <div className="text-left flex-1">
+                                <p className="text-[10px] font-semibold text-slate-400 tracking-widest mb-1.5">ALLOCATED</p>
+                                <p className="font-semibold text-slate-700 text-lg">{totalAllocated.toLocaleString()}</p>
+                            </div>
+                            <div className="w-px bg-slate-200/50 mx-4"></div>
+                            <div className="text-left flex-1">
+                                <p className="text-[10px] font-semibold text-slate-400 tracking-widest mb-1.5">REMAINING</p>
+                                <p className="font-semibold text-emerald-600 text-lg">{remaining.toLocaleString()}</p>
+                            </div>
+                            <div className="w-px bg-slate-200/50 mx-4"></div>
+                            <div className="text-left flex-1">
+                                <p className="text-[10px] font-semibold text-slate-400 tracking-widest mb-1.5">UTILIZATION</p>
+                                <p className="font-semibold text-pink-500 text-lg">{utilization.toFixed(1)}%</p>
+                            </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="w-full h-1.5 bg-slate-200/50 rounded-full overflow-hidden relative z-10 shadow-inner">
+                            <div className="h-full bg-gradient-to-r from-pink-300 to-rose-400 transition-all duration-700 ease-out rounded-full" style={{ width: `${Math.min(utilization, 100)}%` }}></div>
+                        </div>
+                    </div>
+
+                    {/* Categories List */}
+                    <div className="space-y-4">
+                        {categories.map((cat) => {
+                            const loggedSum = cat.expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+                            const percent = cat.allocated > 0 ? ((loggedSum / cat.allocated) * 100).toFixed(1) : 0;
+                            const isExpanded = expandedCat === cat.id;
+
+                            return (
+                                <div key={cat.id} className="glass-card rounded-[1.5rem] p-5 transition-all duration-300 hover:bg-white/70">
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between mb-4 gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                                            <div className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: cat.color }}></div>
+                                            
+                                            <input 
+                                                type="text"
+                                                value={cat.name}
+                                                onChange={(e) => updateCategory(cat.id, 'name', e.target.value)}
+                                                className="font-medium text-slate-800 text-[15px] bg-transparent border-b-2 border-transparent focus:border-pink-200 outline-none w-full px-1 py-0.5 transition-colors tracking-tight"
+                                                title="Edit category name"
+                                            />
+                                            
+                                            <span className="text-[11px] font-semibold text-slate-400 ml-1 flex-shrink-0 bg-slate-100/50 px-2 py-0.5 rounded-md">{percent}%</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                            <button 
+                                                onClick={() => setExpandedCat(isExpanded ? null : cat.id)}
+                                                className={`flex items-center gap-1.5 glass-button px-3 py-2 rounded-xl text-xs font-medium ${isExpanded ? 'bg-white/90 text-pink-600 border-pink-200' : 'text-slate-600'}`}
+                                            >
+                                                <CalendarIcon className="w-4 h-4" /> 
+                                                <span className="hidden sm:inline">Details</span> 
+                                                <span className="opacity-60">({cat.expenses.length})</span>
+                                                <span className="ml-1 opacity-40 text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+                                            </button>
+                                            <input 
+                                                type="number" 
+                                                value={cat.allocated}
+                                                onChange={(e) => updateCategory(cat.id, 'allocated', e.target.value)}
+                                                className="w-20 sm:w-24 glass-input rounded-xl px-2 py-2 text-center font-semibold text-slate-800 text-sm"
+                                            />
+                                            <button onClick={() => deleteCategory(cat.id)} className="text-slate-300 hover:text-rose-500 p-1.5 transition-colors">
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative flex items-center px-1 pb-1">
+                                        <input 
+                                            type="range"
+                                            min="0" max={salary}
+                                            value={cat.allocated}
+                                            onChange={(e) => updateCategory(cat.id, 'allocated', e.target.value)}
+                                            style={{ 
+                                                '--thumb-color': cat.color,
+                                                '--track-bg': `linear-gradient(to right, ${cat.color} ${(cat.allocated/salary)*100}%, rgba(255,255,255,0.6) ${(cat.allocated/salary)*100}%)`
+                                            }}
+                                        />
+                                    </div>
+
+                                    {isExpanded && (
+                                        <CategoryDetails 
+                                            cat={cat} loggedSum={loggedSum}
+                                            updateCat={updateCategory}
+                                            addExpense={addExpense}
+                                            updateExpense={updateExpense}
+                                            deleteExpense={deleteExpense}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Add Category Section */}
+                    <div className="glass-card rounded-[1.5rem] p-6 mt-6 border border-dashed border-slate-300/60 bg-white/30">
+                        <h4 className="font-semibold text-slate-600 mb-3 text-sm tracking-wide">Add New Category</h4>
+                        <div className="flex gap-2 flex-col sm:flex-row">
+                            <input 
+                                type="text" 
+                                placeholder="E.g. Healthcare, Shopping..." 
+                                value={newCatName}
+                                onChange={e => setNewCatName(e.target.value)}
+                                className="flex-1 glass-input rounded-2xl px-4 py-3 font-medium text-sm text-slate-800"
+                            />
+                            <button 
+                                onClick={handleAddCategory}
+                                className="bg-slate-800 hover:bg-slate-700 text-white rounded-2xl px-6 py-3 font-semibold text-sm transition-all shadow-md hover:shadow-lg"
+                            >
+                                Add Category
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Donut Chart Card */}
+                    <div className="glass-card rounded-3xl p-7 mb-8 mt-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xs font-semibold text-slate-500 tracking-widest uppercase">Visual Distribution</h2>
+                            <span className="text-xs font-semibold text-pink-500 bg-pink-50 px-2.5 py-1 rounded-md">{totalEntriesCount} Entries</span>
+                        </div>
+                        <DonutChart categories={categories} salary={salary} />
+                    </div>
+
+                </div>
+            );
+        }
+
+        // --- Extracted Category Details Sub-component ---
+        const CategoryDetails = ({ cat, loggedSum, updateCat, addExpense, updateExpense, deleteExpense }) => {
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [desc, setDesc] = useState('');
+            const [amount, setAmount] = useState('');
+
+            const handleLog = () => {
+                if (!desc || !amount) return;
+                addExpense(cat.id, { date, description: desc, amount });
+                setDesc(''); setAmount('');
+            };
+
+            return (
+                <div className="mt-6 pt-5 border-t border-slate-200/60">
+                    <div className="flex justify-between items-center mb-5">
+                        <h5 className="font-semibold text-xs text-slate-600 flex items-center gap-1.5 uppercase tracking-wide">
+                            <CalendarIcon className="w-4 h-4 text-slate-400" /> 
+                            Date Breakdown
+                        </h5>
+                        <div className="text-right flex items-center gap-3">
+                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Logged Sum</span>
+                            <span className="text-sm font-semibold text-slate-700 bg-white/50 px-2 py-0.5 rounded-md border border-white/60">{loggedSum.toLocaleString()} PKR</span>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => updateCat(cat.id, 'allocated', loggedSum)}
+                        className="w-full mb-6 py-2.5 glass-button text-slate-600 rounded-xl font-semibold text-[11px] flex items-center justify-center gap-2 uppercase tracking-wider"
+                    >
+                        <RefreshIcon className="w-4 h-4" /> Match Budget to Logged Sum
+                    </button>
+                    
+                    <div className="space-y-2 mb-6">
+                        {cat.expenses.map(exp => (
+                            <div key={exp.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 bg-white/40 hover:bg-white/60 transition-colors p-2.5 rounded-xl border border-white/50 shadow-sm">
+                                <input 
+                                    type="date" value={exp.date} onChange={(e) => updateExpense(cat.id, exp.id, 'date', e.target.value)}
+                                    className="w-full sm:w-32 bg-transparent p-1 text-[11px] font-medium text-slate-500 outline-none cursor-pointer"
+                                />
+                                <div className="w-px h-4 bg-slate-300/50 hidden sm:block"></div>
+                                <input 
+                                    type="text" value={exp.description} onChange={(e) => updateExpense(cat.id, exp.id, 'description', e.target.value)}
+                                    className="flex-1 w-full sm:w-auto bg-transparent p-1 text-[13px] font-medium text-slate-800 outline-none border-b border-transparent focus:border-pink-200"
+                                />
+                                <div className="flex items-center justify-end w-full sm:w-auto mt-2 sm:mt-0 gap-2">
+                                    <span className="text-[10px] font-semibold text-slate-400">Rs.</span>
+                                    <input 
+                                        type="number" value={exp.amount} onChange={(e) => updateExpense(cat.id, exp.id, 'amount', e.target.value)}
+                                        className="w-24 bg-transparent p-1 text-[13px] font-semibold text-right outline-none text-slate-800 border-b border-transparent focus:border-pink-200"
+                                    />
+                                    <button onClick={() => deleteExpense(cat.id, exp.id)} className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors ml-1">
+                                        <XIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="space-y-4 pt-5 border-t border-slate-200/60 bg-white/30 p-5 rounded-2xl border border-white/50 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <input 
+                                type="date" value={date} onChange={e => setDate(e.target.value)}
+                                className="bg-transparent border-none outline-none text-xs font-medium text-slate-500 cursor-pointer"
+                            />
+                        </div>
+                        <input 
+                            type="text" placeholder="What did you spend on? (e.g. Lunch...)" value={desc} onChange={e => setDesc(e.target.value)}
+                            className="w-full bg-transparent border-none outline-none text-[15px] font-medium text-slate-800 placeholder-slate-400"
+                        />
+                        <div className="flex items-center justify-between border-b border-slate-300/50 pb-2 pt-2">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Amount</span>
+                            <div className="flex items-center gap-1">
+                                <span className="text-sm font-medium text-slate-400">Rs.</span>
+                                <input 
+                                    type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)}
+                                    className="w-32 bg-transparent border-none outline-none text-right text-xl font-semibold text-slate-800 placeholder-slate-300"
+                                />
+                            </div>
+                        </div>
+                        <button 
+                            onClick={handleLog}
+                            className="w-full mt-3 py-3.5 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white rounded-xl font-semibold text-sm tracking-wide border-transparent shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                            <CheckIcon className="w-5 h-5" /> Log Entry
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const renderApp = () => {
+            const rootElement = document.getElementById('root');
+            if (rootElement && !rootElement.hasChildNodes()) {
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(<App />);
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', renderApp);
+        } else {
+            renderApp();
+        }
+        
+        setTimeout(renderApp, 500);
+    </script>
+</body>
+</html>
